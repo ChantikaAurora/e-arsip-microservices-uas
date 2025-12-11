@@ -15,11 +15,7 @@ return [
     */
 
     'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
-    ],
-
-    'resend' => [
-        'key' => env('RESEND_API_KEY'),
+        'token' => env('POSTMARK_TOKEN'),
     ],
 
     'ses' => [
@@ -28,11 +24,34 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'resend' => [
+        'key' => env('RESEND_KEY'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Microservices Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for internal microservices communication
+    |
+    */
+
+    'user_service' => [
+        'url' => env('USER_SERVICE_URL', 'http://localhost:8001'),
+        'timeout' => env('USER_SERVICE_TIMEOUT', 5), // seconds
+    ],
+
+    'dashboard_service' => [
+        'url' => env('DASHBOARD_SERVICE_URL', 'http://localhost:8003'),
+        'timeout' => env('DASHBOARD_SERVICE_TIMEOUT', 5),
     ],
 
 ];

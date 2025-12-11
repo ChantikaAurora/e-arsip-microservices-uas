@@ -2,19 +2,55 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class JenisArsip extends Model
 {
-    protected $table = 'jenis_arsips';
+    use HasFactory;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'jenisarsips';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'jenis',
-        'keterangan',
+        'kode',
+        'nama',
+        'deskripsi',
+        'is_active',
     ];
 
-    public function documents()
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    /**
+     * Get the documents for the jenis arsip.
+     */
+    public function documents(): HasMany
     {
-        return $this->hasMany(Document::class, 'jenis_id');
+        return $this->hasMany(Document::class, 'jenis', 'id');
+    }
+
+    /**
+     * Scope a query to only include active jenis arsip.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 }
