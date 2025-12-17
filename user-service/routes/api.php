@@ -2,23 +2,52 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController; // Panggil Controller Login
-use App\Http\Controllers\UserController; // Panggil Controller List User
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
 
 /*
 |--------------------------------------------------------------------------
-| API Routes
+| API Routes - User Service (Laravel 8)
 |--------------------------------------------------------------------------
 */
 
-// 1. Jalur Auth (Register & Login)
+// Health check
+Route::get('/health', function () {
+    return response()->json([
+        'success' => true,
+        'service' => 'user-service',
+        'status' => 'healthy',
+        'version' => '8.83.29',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
+// ✅ PUBLIC ROUTES
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// 2. Jalur Lihat Daftar User (Sesuai request Aurora buat JSON)
-Route::get('/users', [UserController::class, 'index']);
+// ✅ PROTECTED ROUTES (Laravel 8 style)
+Route::middleware('auth:sanctum')->group(function () {
 
-// 3. Jalur Khusus (Harus Login / Punya Token)
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    // Auth endpoints
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/profile', [AuthController::class, 'profile']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+
+    // User CRUD endpoints
+    Route::prefix('users')->group(function () {
+        Route::get('/', [UserController::class, 'index']);
+        Route::post('/', [UserController::class, 'store']);
+        Route::get('/{id}', [UserController::class, 'show']);
+        Route::put('/{id}', [UserController::class, 'update']);
+        Route::delete('/{id}', [UserController::class, 'destroy']);
+    });
+
+    // Legacy endpoint
+    Route::get('/user', function (Request $request) {
+        return response()->json([
+            'success' => true,
+            'data' => $request->user(),
+        ]);
+    });
 });

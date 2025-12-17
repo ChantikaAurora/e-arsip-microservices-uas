@@ -3,8 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\ValidateUserServiceToken;
-use App\Http\Middleware\CorrelationIdMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,16 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Register middleware aliases
-        $middleware->alias([
-            'auth.user-service' => ValidateUserServiceToken::class,
-            'correlation.id' => CorrelationIdMiddleware::class,
-        ]);
+        // ✅ CRITICAL: Correlation ID Middleware (REQUIREMENT d)
+        // Append to global middleware stack
+        $middleware->append(\App\Http\Middleware\CorrelationIdMiddleware::class);
 
-        // Atau tambahkan ke API middleware group (opsional)
-        // $middleware->api(append: [
-        //     CorrelationIdMiddleware::class,
-        // ]);
+        // ✅ Register custom middleware aliases
+        $middleware->alias([
+            'auth.user-service' => \App\Http\Middleware\AuthenticateViaUserService::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

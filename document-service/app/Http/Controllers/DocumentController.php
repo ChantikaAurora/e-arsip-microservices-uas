@@ -15,9 +15,19 @@ class DocumentController extends Controller
      */
     public function index(Request $request)
     {
+        // ✅ Get Correlation ID
+        $correlationId = $request->attributes->get('correlation_id');
+
         try {
             // Ambil user yang terautentikasi dari middleware
             $authenticatedUser = $request->get('authenticated_user');
+
+            // ✅ Logging dengan Correlation ID
+            Log::info('Documents list requested', [
+                'correlation_id' => $correlationId,
+                'user_id' => $authenticatedUser['id'] ?? null,
+                'user_email' => $authenticatedUser['email'] ?? null,
+            ]);
 
             // Query dengan pagination
             $perPage = $request->input('per_page', 10);
@@ -25,9 +35,9 @@ class DocumentController extends Controller
                 ->latest()
                 ->paginate($perPage);
 
-            Log::info('Documents retrieved', [
-                'user_id' => $authenticatedUser['id'] ?? null,
-                'user_email' => $authenticatedUser['email'] ?? null,
+            // ✅ Logging success dengan Correlation ID
+            Log::info('Documents retrieved successfully', [
+                'correlation_id' => $correlationId,
                 'total' => $documents->total(),
             ]);
 
@@ -42,7 +52,9 @@ class DocumentController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            // ✅ Logging error dengan Correlation ID
             Log::error('Error retrieving documents', [
+                'correlation_id' => $correlationId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -50,7 +62,7 @@ class DocumentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve documents',
-                'error' => $e->getMessage(),
+                'error' => 'Terjadi kesalahan server',
             ], 500);
         }
     }
@@ -60,8 +72,17 @@ class DocumentController extends Controller
      */
     public function store(Request $request)
     {
+        // ✅ Get Correlation ID
+        $correlationId = $request->attributes->get('correlation_id');
+
         try {
             $authenticatedUser = $request->get('authenticated_user');
+
+            // ✅ Logging dengan Correlation ID
+            Log::info('Create document attempt', [
+                'correlation_id' => $correlationId,
+                'user_id' => $authenticatedUser['id'] ?? null,
+            ]);
 
             // Validasi input
             $validator = Validator::make($request->all(), [
@@ -71,9 +92,22 @@ class DocumentController extends Controller
                 'jenis_arsip_id' => 'required|exists:jenis_arsips,id',
                 'file_path' => 'nullable|string|max:500',
                 'keterangan' => 'nullable|string',
+            ], [
+                'nomor_dokumen.required' => 'Nomor dokumen wajib diisi',
+                'nomor_dokumen.unique' => 'Nomor dokumen sudah ada',
+                'judul.required' => 'Judul wajib diisi',
+                'tanggal_dokumen.required' => 'Tanggal dokumen wajib diisi',
+                'jenis_arsip_id.required' => 'Jenis arsip wajib dipilih',
+                'jenis_arsip_id.exists' => 'Jenis arsip tidak valid',
             ]);
 
             if ($validator->fails()) {
+                // ✅ Logging validation failed dengan Correlation ID
+                Log::warning('Document creation validation failed', [
+                    'correlation_id' => $correlationId,
+                    'errors' => $validator->errors(),
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -92,7 +126,9 @@ class DocumentController extends Controller
                 'created_by' => $authenticatedUser['id'] ?? null,
             ]);
 
-            Log::info('Document created', [
+            // ✅ Logging success dengan Correlation ID
+            Log::info('Document created successfully', [
+                'correlation_id' => $correlationId,
                 'document_id' => $document->id,
                 'created_by' => $authenticatedUser['email'] ?? 'Unknown',
             ]);
@@ -104,14 +140,16 @@ class DocumentController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
+            // ✅ Logging error dengan Correlation ID
             Log::error('Error creating document', [
+                'correlation_id' => $correlationId,
                 'error' => $e->getMessage(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create document',
-                'error' => $e->getMessage(),
+                'error' => 'Terjadi kesalahan server',
             ], 500);
         }
     }
@@ -121,15 +159,36 @@ class DocumentController extends Controller
      */
     public function show(Request $request, $id)
     {
+        // ✅ Get Correlation ID
+        $correlationId = $request->attributes->get('correlation_id');
+
         try {
+            // ✅ Logging dengan Correlation ID
+            Log::info('Document detail requested', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+            ]);
+
             $document = Document::with('jenisArsip')->find($id);
 
             if (!$document) {
+                // ✅ Logging not found dengan Correlation ID
+                Log::warning('Document not found', [
+                    'correlation_id' => $correlationId,
+                    'document_id' => $id,
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Document not found',
                 ], 404);
             }
+
+            // ✅ Logging success dengan Correlation ID
+            Log::info('Document retrieved successfully', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -138,10 +197,17 @@ class DocumentController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            // ✅ Logging error dengan Correlation ID
+            Log::error('Error retrieving document', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve document',
-                'error' => $e->getMessage(),
+                'error' => 'Terjadi kesalahan server',
             ], 500);
         }
     }
@@ -151,12 +217,28 @@ class DocumentController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // ✅ Get Correlation ID
+        $correlationId = $request->attributes->get('correlation_id');
+
         try {
             $authenticatedUser = $request->get('authenticated_user');
+
+            // ✅ Logging dengan Correlation ID
+            Log::info('Update document attempt', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+                'updated_by' => $authenticatedUser['id'] ?? null,
+            ]);
 
             $document = Document::find($id);
 
             if (!$document) {
+                // ✅ Logging not found dengan Correlation ID
+                Log::warning('Document not found', [
+                    'correlation_id' => $correlationId,
+                    'document_id' => $id,
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Document not found',
@@ -170,9 +252,19 @@ class DocumentController extends Controller
                 'jenis_arsip_id' => 'sometimes|exists:jenis_arsips,id',
                 'file_path' => 'nullable|string|max:500',
                 'keterangan' => 'nullable|string',
+            ], [
+                'nomor_dokumen.unique' => 'Nomor dokumen sudah ada',
+                'tanggal_dokumen.date' => 'Format tanggal tidak valid',
+                'jenis_arsip_id.exists' => 'Jenis arsip tidak valid',
             ]);
 
             if ($validator->fails()) {
+                // ✅ Logging validation failed dengan Correlation ID
+                Log::warning('Document update validation failed', [
+                    'correlation_id' => $correlationId,
+                    'errors' => $validator->errors(),
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -189,7 +281,9 @@ class DocumentController extends Controller
                 'keterangan',
             ]));
 
-            Log::info('Document updated', [
+            // ✅ Logging success dengan Correlation ID
+            Log::info('Document updated successfully', [
+                'correlation_id' => $correlationId,
                 'document_id' => $document->id,
                 'updated_by' => $authenticatedUser['email'] ?? 'Unknown',
             ]);
@@ -201,10 +295,17 @@ class DocumentController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            // ✅ Logging error dengan Correlation ID
+            Log::error('Error updating document', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update document',
-                'error' => $e->getMessage(),
+                'error' => 'Terjadi kesalahan server',
             ], 500);
         }
     }
@@ -214,12 +315,28 @@ class DocumentController extends Controller
      */
     public function destroy(Request $request, $id)
     {
+        // ✅ Get Correlation ID
+        $correlationId = $request->attributes->get('correlation_id');
+
         try {
             $authenticatedUser = $request->get('authenticated_user');
+
+            // ✅ Logging dengan Correlation ID
+            Log::info('Delete document attempt', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+                'deleted_by' => $authenticatedUser['id'] ?? null,
+            ]);
 
             $document = Document::find($id);
 
             if (!$document) {
+                // ✅ Logging not found dengan Correlation ID
+                Log::warning('Document not found', [
+                    'correlation_id' => $correlationId,
+                    'document_id' => $id,
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Document not found',
@@ -229,7 +346,9 @@ class DocumentController extends Controller
             $documentInfo = $document->nomor_dokumen;
             $document->delete();
 
-            Log::info('Document deleted', [
+            // ✅ Logging success dengan Correlation ID
+            Log::info('Document deleted successfully', [
+                'correlation_id' => $correlationId,
                 'document_id' => $id,
                 'document_number' => $documentInfo,
                 'deleted_by' => $authenticatedUser['email'] ?? 'Unknown',
@@ -241,10 +360,17 @@ class DocumentController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            // ✅ Logging error dengan Correlation ID
+            Log::error('Error deleting document', [
+                'correlation_id' => $correlationId,
+                'document_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete document',
-                'error' => $e->getMessage(),
+                'error' => 'Terjadi kesalahan server',
             ], 500);
         }
     }

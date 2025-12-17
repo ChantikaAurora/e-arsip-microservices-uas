@@ -107,5 +107,9 @@ return [
     */
 
     'password_timeout' => 10800,
+     'sanctum' => [
+        'driver' => 'sanctum',
+        'provider' => 'users',
+    ],
 
 ];
